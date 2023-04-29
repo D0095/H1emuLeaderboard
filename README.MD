@@ -22,8 +22,8 @@ apt update && apt install python3 python3-pip
 ### 2. Clone repository
 
 ```
-git clone https://github.com/
-cd 
+git clone https://github.com/D0095/H1emuLeaderboard
+cd H1emuLeaderboard
 ```
 
 ### 3. (optional) Setup virtualenv
