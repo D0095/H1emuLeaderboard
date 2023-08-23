@@ -32,6 +32,7 @@ RemoveKillsByBannedPlayers: bool = bool(config['Banned Players'][
                                             'RemoveKillsByBannedPlayers'])  # Set the RemoveKillsByBannedPlayers variable from config file
 RemoveKillsByBannedPlayersReason: list = config['Banned Players']['RemoveKillsByBannedPlayersReason'].split(
     ',')  # Import list of ban reasons to remove banned player kills from the database separated by a comma
+RemoveKillsByBannedPlayersInterval: int = int(config['Banned Players']['RemoveKillsByBannedPlayersInterval'])
 Token: str = config['Discord']['Token']  # Set the Token variable from the config file
 channel_id: int = int(config['Discord']['ChannelId'])  # set the channel_id variable from config file
 leaderboard_size: int = int(
@@ -39,6 +40,8 @@ leaderboard_size: int = int(
 seconds_between_updates: int = int(
     config['Leaderboard']['SecondsBetweenUpdates'])  # set the seconds_between_updates variable from config file
 sort_by: str = config['Leaderboard']['SortBy']  # set the sort_by variable from config file
+LoopCounter: int = 0
+
 
 client = discord.Client(intents=Intents.default())  # create the discord client/bot and declare the intents
 KillLeaderboard = []  # Create KillLeaderboard list
@@ -120,9 +123,14 @@ def calculate_kd():  # Calculate the kill/death ratio of players
 
 
 def get_kill_leaderboard(start=0, end=20):  # Return a leaderboard sorted by number of kills
+    global LoopCounter
+    LoopCounter += 1
+    if LoopCounter == RemoveKillsByBannedPlayersInterval:
+        remove_banned_player_kills()
+        LoopCounter = 0
     table = BeautifulTable()  # Create a variable to store the table
     KillLeaderboard.clear()  # Clear the list
-    count = 0  # Variable for tracking the number of current entry in the leaderboard
+    leaderboard_counter = 0  # Variable for tracking the number of current entry in the leaderboard
     calculate_kills()  # Calculate number of kills by each player and add them to the Leaderboard
     calculate_deaths()  # Calculate number of deaths by each player and add them to the Leaderboard
     calculate_kd()  # Calculate the kill/death ratio of players
@@ -133,12 +141,12 @@ def get_kill_leaderboard(start=0, end=20):  # Return a leaderboard sorted by num
     elif sort_by == 'kd':
         KillLeaderboard.sort(key=lambda x: x.KD, reverse=True)  # Sort the leaderboard by number of K/D
     for player in KillLeaderboard:  # Iterate though all players in the leaderboard
-        if count < end or end == 0:  # Check if the leaderboard has reached the desired size (0 = unlimited)
-            if count >= start:  # Check if we have reached the desired starting position of the leaderboard
+        if leaderboard_counter < end or end == 0:  # Check if the leaderboard has reached the desired size (0 = unlimited)
+            if leaderboard_counter >= start:  # Check if we have reached the desired starting position of the leaderboard
                 if player.Kills > 0:  # Check that the player has more at-least one kill
                     table.rows.append(
-                        [str(count + 1), player.Name, str(player.Kills), round(player.KD, 2), player.Deaths])
-            count += 1  # Increase the position counter by one
+                        [str(leaderboard_counter + 1), player.Name, str(player.Kills), round(player.KD, 2), player.Deaths])
+            leaderboard_counter += 1  # Increase the position counter by one
     table.columns.header = (["#", "Player", "Kills", "K/D", "Deaths"])
     table.columns.alignment = BeautifulTable.ALIGN_RIGHT
     table.columns.alignment['Player'] = BeautifulTable.ALIGN_LEFT
